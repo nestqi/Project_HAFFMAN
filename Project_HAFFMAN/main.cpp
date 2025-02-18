@@ -5,6 +5,7 @@ using namespace std;
 
 int main()
 {
+    setlocale(LC_ALL, "RU");
     // —жатие текстового файла
     compressFile("input.txt", "compressed.huff");
     cout << "‘айл input.txt сжат в compressed.huff" << endl;
