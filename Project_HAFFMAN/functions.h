@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <bitset>
 #include <string>
-#include <filesystem>  // Для проверки существования файла и получения рабочей директории
 
 using namespace std;
 

@@ -1,36 +1,49 @@
 #include "functions.h"
 
-HuffmanNode* buildHuffmanTree(const map<unsigned char, int>& freq) {
-    // Создаем приоритетную очередь для узлов
-    priority_queue<HuffmanNode*, vector<HuffmanNode*>, CompareNodes> pq;
 
-    // Добавляем листовые узлы (для каждого символа)
+
+
+HuffmanNode* buildHuffmanTree(const std::map<unsigned char, int>& freq) {
+    //приоритетная очередь для дерева
+    std::priority_queue<HuffmanNode*, std::vector<HuffmanNode*>, CompareNodes> pq;
+
+    //создаем листовой узел и помещаем его в очередь.
     for (auto pair : freq) {
         HuffmanNode* node = new HuffmanNode(pair.first, pair.second);
         pq.push(node);
     }
 
-    // Пока не останется один узел, объединяем два узла с минимальной частотой
-    while (pq.size() > 1) {
+    while (pq.size()>1)
+    {
+        //берем два узла с мин частотой один в лево другой в право
         HuffmanNode* left = pq.top();
         pq.pop();
         HuffmanNode* right = pq.top();
         pq.pop();
 
+
+
+        //создаем новый узел
         HuffmanNode* parent = new HuffmanNode(left->frequency + right->frequency);
         parent->left = left;
         parent->right = right;
+
+
+        //узел обратно в очередь
+
         pq.push(parent);
+
     }
 
+    // возвращаем последний узел в очереди (это корень дерева)
     return pq.top();
 }
-
+// Функция для генерации кодов Хаффмана (рекурсивно)
 void generateHuffmanCodes(HuffmanNode* node, string code, map<unsigned char, string>& codes) {
-    if (node == nullptr)
+    if (node == nullptr) {
         return;
+    }
 
-    // Если достигли листа, сохраняем полученный код
     if (node->left == nullptr && node->right == nullptr) {
         codes[node->data] = code;
         return;
@@ -39,34 +52,31 @@ void generateHuffmanCodes(HuffmanNode* node, string code, map<unsigned char, str
     generateHuffmanCodes(node->left, code + "0", codes);
     generateHuffmanCodes(node->right, code + "1", codes);
 }
-
+// Функция для подсчета частот символов в файле
 map<unsigned char, int> calculateFrequencies(const string& filename) {
     map<unsigned char, int> frequencies;
-    // Проверяем, существует ли файл
-    if (!std::filesystem::exists(filename)) {
-        cerr << "Файл не найден: " << filename << endl;
-        return frequencies;
-    }
-
     ifstream file(filename, ios::binary);
-    if (!file.is_open()) {
+
+    if (file.is_open()) {
+        unsigned char c;
+        while (file.read((char*)&c, 1)) {
+            frequencies[c]++;
+        }
+        file.close();
+    }
+    else {
         cerr << "Не удалось открыть файл: " << filename << endl;
-        return frequencies;
+        return {};
     }
 
-    unsigned char c;
-    while (file.read(reinterpret_cast<char*>(&c), 1)) {
-        frequencies[c]++;
-    }
-    file.close();
     return frequencies;
 }
-
+// Функция для сжатия файла
 void compressFile(const string& inputFilename, const string& outputFilename) {
     map<unsigned char, int> frequencies = calculateFrequencies(inputFilename);
 
     if (frequencies.empty()) {
-        cerr << "Нечего сжимать: " << inputFilename << endl;
+        cerr << "Нечего сжимать." << endl;
         return;
     }
 
@@ -80,104 +90,130 @@ void compressFile(const string& inputFilename, const string& outputFilename) {
         return;
     }
 
-    // Сохраняем таблицу частот (для декомпрессии)
-    size_t frequenciesSize = frequencies.size();
-    outputFile.write(reinterpret_cast<char*>(&frequenciesSize), sizeof(size_t));
+    // Запись частот символов в файл (необходимо для распаковки)
+    size_t frequenciesSize = frequencies.size(); // Сохраняем размер во временную переменную
+    outputFile.write(reinterpret_cast<char*>(&frequenciesSize), sizeof(size_t)); // Количество символов
     for (auto const& [symbol, frequency] : frequencies) {
-        outputFile.write(reinterpret_cast<const char*>(&symbol), sizeof(unsigned char));
-        outputFile.write(reinterpret_cast<const char*>(&frequency), sizeof(int));
+        outputFile.write((char*)&symbol, sizeof(unsigned char));
+        outputFile.write((char*)&frequency, sizeof(int));
     }
 
-    // Читаем входной файл для кодирования
+
+    // Сжатие данных
     ifstream inputFile(inputFilename, ios::binary);
-    string encodedData;
+    string encodedData = "";
     unsigned char c;
-    while (inputFile.read(reinterpret_cast<char*>(&c), 1)) {
+    while (inputFile.read((char*)&c, 1)) {
         encodedData += huffmanCodes[c];
     }
     inputFile.close();
 
-    // Добавляем padding (дополнение до полного байта)
+
+    // Padding для выравнивания по байтам (важно!)
     int paddingLength = 8 - (encodedData.length() % 8);
     if (paddingLength == 8) paddingLength = 0;
     for (int i = 0; i < paddingLength; ++i) {
         encodedData += "0";
     }
-    outputFile.write(reinterpret_cast<char*>(&paddingLength), sizeof(int));
+    outputFile.write((char*)&paddingLength, sizeof(int)); // Запись длины padding
 
-    // Записываем сжатые данные побайтно
+    // Запись сжатых данных побайтно
     for (size_t i = 0; i < encodedData.length(); i += 8) {
         string byteStr = encodedData.substr(i, 8);
-        unsigned char byte = static_cast<unsigned char>(stoi(byteStr, nullptr, 2));
-        outputFile.write(reinterpret_cast<char*>(&byte), 1);
+        unsigned char byte = (unsigned char)stoi(byteStr, nullptr, 2); // Преобразование двоичной строки в байт
+        outputFile.write((char*)&byte, 1);
     }
 
     outputFile.close();
 
-    // Здесь желательно добавить функцию освобождения памяти дерева (не реализовано)
+    // Освобождение памяти, выделенной для дерева Хаффмана
+    // (Реализация  удаления дерева не включена, так как может быть сложной.  Для production кода это необходимо!)
 }
 
+
+// Функция для распаковки файла
 void decompressFile(const string& inputFilename, const string& outputFilename) {
     ifstream inputFile(inputFilename, ios::binary);
+
     if (!inputFile.is_open()) {
         cerr << "Не удалось открыть файл для чтения: " << inputFilename << endl;
         return;
     }
 
-    // Восстанавливаем таблицу частот
+    // Чтение частот символов
     size_t frequenciesSize;
-    inputFile.read(reinterpret_cast<char*>(&frequenciesSize), sizeof(size_t));
+    inputFile.read((char*)&frequenciesSize, sizeof(size_t));
     map<unsigned char, int> frequencies;
     for (size_t i = 0; i < frequenciesSize; ++i) {
         unsigned char symbol;
         int frequency;
-        inputFile.read(reinterpret_cast<char*>(&symbol), sizeof(unsigned char));
-        inputFile.read(reinterpret_cast<char*>(&frequency), sizeof(int));
+        inputFile.read((char*)&symbol, sizeof(unsigned char));
+        inputFile.read((char*)&frequency, sizeof(int));
         frequencies[symbol] = frequency;
     }
 
     HuffmanNode* root = buildHuffmanTree(frequencies);
 
+    // Чтение padding length
     int paddingLength;
-    inputFile.read(reinterpret_cast<char*>(&paddingLength), sizeof(int));
+    inputFile.read((char*)&paddingLength, sizeof(int));
 
-    // Читаем сжатые данные
+
+    // Восстановление данных
+    ofstream outputFile(outputFilename, ios::binary);
+    HuffmanNode* currentNode = root;
+    string decodedData = "";
+
+    // Read the compressed data
     vector<unsigned char> compressedData;
     unsigned char byte;
-    while (inputFile.read(reinterpret_cast<char*>(&byte), 1)) {
+    while (inputFile.read((char*)&byte, 1)) {
         compressedData.push_back(byte);
     }
     inputFile.close();
 
-    string bitString;
-    for (unsigned char b : compressedData) {
+
+    string bitString = "";
+    for (unsigned char byte : compressedData) {
+        //Convert each byte to its 8-bit binary representation
         for (int i = 7; i >= 0; --i) {
-            bitString += ((b >> i) & 1) ? '1' : '0';
+            bitString += ((byte >> i) & 1) ? '1' : '0';
         }
     }
 
-    // Убираем padding
-    if (paddingLength > 0 && paddingLength <= bitString.size())
-        bitString = bitString.substr(0, bitString.size() - paddingLength);
+    bitString = bitString.substr(0, bitString.length() - paddingLength); //remove padding
 
-    ofstream outputFile(outputFilename, ios::binary);
-    if (!outputFile.is_open()) {
-        cerr << "Не удалось открыть файл для записи: " << outputFilename << endl;
-        return;
-    }
+    for (char bit : bitString)
+    {
+        if (currentNode == nullptr) {
+            cerr << "Ошибка: Дерево Хаффмана повреждено или не соответствует данным." << endl;
+            outputFile.close();
+            delete root;
+            return;
+        }
 
-    HuffmanNode* currentNode = root;
-    for (char bit : bitString) {
         if (bit == '0')
+        {
             currentNode = currentNode->left;
+        }
         else
+        {
             currentNode = currentNode->right;
+        }
 
-        // Если достигли листа, записываем символ
-        if (currentNode->left == nullptr && currentNode->right == nullptr) {
-            outputFile.write(reinterpret_cast<char*>(&(currentNode->data)), 1);
-            currentNode = root;
+        if (currentNode == nullptr) {
+            cerr << "Ошибка: Дерево Хаффмана повреждено или не соответствует данным (после перехода)." << endl;
+            outputFile.close();
+            delete root;
+            return;
+        }
+
+        if (currentNode->left == nullptr && currentNode->right == nullptr)
+        {
+            outputFile.write((char*)&(currentNode->data), 1);
+            currentNode = root; // Reset to root for next character
         }
     }
+
     outputFile.close();
 }
