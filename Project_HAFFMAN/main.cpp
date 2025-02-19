@@ -1,16 +1,11 @@
-#include <iostream>
-#include <filesystem>
-#include "functions.h"
+#include <iostream>    
+#include "functions.h" 
 
-using namespace std;
-namespace fs = std::filesystem;
+using namespace std;    
 
-int main() {
+int main()
+{
     setlocale(LC_ALL, "RU");
-
-    // Вывод текущей рабочей директории для отладки
-    cout << "Текущая рабочая директория: " << fs::current_path() << endl;
-
     // Сжатие текстового файла
     compressFile("input.txt", "compressed.huff");
     cout << "Файл input.txt сжат в compressed.huff" << endl;
