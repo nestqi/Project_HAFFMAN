@@ -1,24 +1,34 @@
-#include <iostream>    
-#include "functions.h" 
-
-using namespace std;    
+#include <iostream>
+#include <chrono>
+#include "functions.h"
 
 int main()
 {
     setlocale(LC_ALL, "RU");
-    // —жатие текстового файла
+
+    auto start = std::chrono::high_resolution_clock::now();
     compressFile("input.txt", "compressed.huff");
-    cout << "‘айл input.txt сжат в compressed.huff" << endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto compressTextTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "‘айл input.txt сжат в compressed.huff за " << compressTextTime << " мс." << std::endl;
 
+    start = std::chrono::high_resolution_clock::now();
     decompressFile("compressed.huff", "decompressed.txt");
-    cout << "‘айл compressed.huff распакован в decompressed.txt" << endl;
+    end = std::chrono::high_resolution_clock::now();
+    auto decompressTextTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "‘айл compressed.huff распакован в decompressed.txt за " << decompressTextTime << " мс." << std::endl;
 
-    // —жатие BMP файла
+    start = std::chrono::high_resolution_clock::now();
     compressFile("image.bmp", "compressed.huff_bmp");
-    cout << "‘айл image.bmp сжат в compressed.huff_bmp" << endl;
+    end = std::chrono::high_resolution_clock::now();
+    auto compressBmpTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "‘айл image.bmp сжат в compressed.huff_bmp за " << compressBmpTime << " мс." << std::endl;
 
+    start = std::chrono::high_resolution_clock::now();
     decompressFile("compressed.huff_bmp", "decompressed.bmp");
-    cout << "‘айл compressed.huff_bmp распакован в decompressed.bmp" << endl;
+    end = std::chrono::high_resolution_clock::now();
+    auto decompressBmpTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "‘айл compressed.huff_bmp распакован в decompressed.bmp за " << decompressBmpTime << " мс." << std::endl;
 
     return 0;
 }
