@@ -8,14 +8,17 @@
 #include <algorithm>
 #include <bitset>
 #include <string>
+#include <filesystem> 
+
 
 using namespace std;
+namespace fs = std::filesystem;
 
 struct HuffmanNode {
-    unsigned char data; // Символ (для листа)
-    int frequency;      // Частота символа
-    HuffmanNode* left;  // Левый дочерний узел
-    HuffmanNode* right; // Правый дочерний узел
+    unsigned char data; // символ (для листа)
+    int frequency;      // частота символа
+    HuffmanNode* left;  // левый сын
+    HuffmanNode* right; // правый сын
 
     HuffmanNode(unsigned char data, int frequency)
         : data(data), frequency(frequency), left(nullptr), right(nullptr) {
